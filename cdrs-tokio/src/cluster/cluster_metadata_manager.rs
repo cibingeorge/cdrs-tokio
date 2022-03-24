@@ -321,7 +321,7 @@ impl<T: CdrsTransport + 'static, CM: ConnectionManager<T> + 'static> ClusterMeta
             contact_points,
             connection_pool_factory,
             did_initial_refresh: AtomicBool::new(false),
-            is_schema_v2: AtomicBool::new(true),
+            is_schema_v2: AtomicBool::new(false),
             session_context,
             node_distance_evaluator,
             version,
@@ -652,7 +652,7 @@ impl<T: CdrsTransport + 'static, CM: ConnectionManager<T> + 'static> ClusterMeta
 
     async fn query_peers(&self, transport: &T) -> Result<Option<Vec<Row>>> {
         let peers_v2_result =
-            send_query("SELECT * FROM system.peers_v2", transport, self.version).await;
+            send_query("SELECT * FROM system.peers", transport, self.version).await;
         match peers_v2_result {
             Ok(result) => Ok(result),
             // peers_v2 does not exist
@@ -661,7 +661,7 @@ impl<T: CdrsTransport + 'static, CM: ConnectionManager<T> + 'static> ClusterMeta
                 ..
             })) => {
                 self.is_schema_v2.store(false, Ordering::Relaxed);
-                send_query("SELECT * FROM system.peers", transport, self.version).await
+                send_query("SELECT * FROM system.peers_v2", transport, self.version).await
             }
             Err(error) => Err(error),
         }
