@@ -212,8 +212,10 @@ impl<
             )
             .await;
 
+        debug!("Result from exec_with_params={:?}", result);
         if let Err(error::Error::Server(error)) = &result {
             // if query is unprepared
+            debug!("Error from exec_with_params error={:?}", &error);
             if error.error_code == 0x2500 {
                 debug!("Re-preparing statement.");
                 if let Ok(new) = self.prepare_raw(&prepared.query).await {
