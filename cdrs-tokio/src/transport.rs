@@ -295,7 +295,7 @@ impl AsyncTransport {
             error!(%error, "Transport error!");
 
             is_broken.store(true, Ordering::Relaxed);
-            response_handler_map.signal_general_error(&error.to_string());
+            response_handler_map.signal_general_error(&error);
 
             if let Some(error_handler) = error_handler {
                 let _ = error_handler.send(error).await;
@@ -419,11 +419,19 @@ impl ResponseHandlerMap {
         }
     }
 
-    pub fn signal_general_error(&self, error: &str) {
+    pub fn signal_general_error(&self, error: &Error) {
         for (_, handler) in self.stream_handlers.lock().unwrap().drain() {
-            let _ = handler.send(Err(Error::General(error.to_string())));
+            match error {
+                Error::Server(err) => {
+                    let _ = handler.send(Err(Error::Server(err.to_owned())));
+                },
+                _ => {
+                    let _ = handler.send(Err(Error::General(error.to_string())));
+                }
+            }
         }
     }
+
 
     pub fn next_stream_id(&self) -> StreamId {
         loop {
